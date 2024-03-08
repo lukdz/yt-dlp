@@ -1,4 +1,5 @@
 import math
+import re
 
 from .common import InfoExtractor
 from ..compat import (
@@ -10,12 +11,15 @@ from ..utils import (
     InAdvancePagedList,
     traverse_obj,
     unified_timestamp,
+    ExtractorError,
 )
+from ..networking.exceptions import HTTPError
 
 
 class BanByeBaseIE(InfoExtractor):
     _API_BASE = 'https://api.banbye.com'
     _CDN_BASE = 'https://cdn.banbye.com'
+    _TC2_BASE = 'https://tc2.banbye.com:31001'
     _VIDEO_BASE = 'https://banbye.com/watch'
 
     @staticmethod
@@ -80,6 +84,86 @@ class BanByeIE(BanByeBaseIE):
             'view_count': int,
             'comment_count': int,
         },
+    }, {
+        'url': 'https://banbye.com/watch/v_scCsSgH5SAVx',
+        'info_dict': {
+            'id': 'v_scCsSgH5SAVx',
+            'ext': 'mp4',
+            'title': 'Braun OSTRO u Roli o wpychaniu Polski w wojnę, Hołowni, Tusku, Putinie, Rolnikach, Zełenskim i Konfie?! TELEFONY NA ŻYWO',
+            'description': 'md5:27608a0f8ebba7eea9bdda4058221570',
+            'uploader': 'wRealu24',
+            'channel_id': 'ch_wrealu24',
+            'channel_url': 'https://banbye.com/channel/ch_wrealu24',
+            'duration': 4320.000000000072,
+            'timestamp': 1709306481,
+            'upload_date': '20240301',
+            'thumbnail': 'https://cdn.banbye.com/video/v_scCsSgH5SAVx/96.webp',
+            'tags': ['braun', 'tusk', 'zalenski', 'putin', 'konfederacja', 'rola'],
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'comment_count': int,
+        },
+    }, {
+        'url': 'https://banbye.com/watch/v_y6ZwvWi4vpyy',
+        'info_dict': {
+            'id': 'v_y6ZwvWi4vpyy',
+            'ext': 'mp4',
+            'title': 'Najbardziej zapomniany polski pisarz? Przywracamy pamięć o nim!',
+            'description': 'md5:acb14057105ab4029f69fd3e175d36ec',
+            'uploader': 'Multibook.pl - księgarnia inna niż wszystkie!',
+            'channel_id': 'ch__ViawXqgYNgT',
+            'channel_url': 'https://banbye.com/channel/ch__ViawXqgYNgT',
+            'duration': 893,
+            'timestamp': 1709108848,
+            'upload_date': '20240228',
+            'thumbnail': 'https://cdn.banbye.com/video/v_y6ZwvWi4vpyy/96.webp',
+            'tags': ['pisarz', 'zapomniany', 'jeske', 'multibookpl', 'XXwiek'],
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'comment_count': int,
+        },
+    }, {
+        'url': 'https://banbye.com/watch/v_07E6K63jqwJh',
+        'info_dict': {
+            'id': 'v_07E6K63jqwJh',
+            'ext': 'mp4',
+            'title': 'Afera w Niemczech - Rosjanie podsłuchiwali Luftwaffe - komentuje kpt. Maciej Lisowski | Najważniejsze Pytania',
+            'description': None,
+            'uploader': 'TVMN',
+            'channel_id': 'ch_orZUyrBUJn0p',
+            'channel_url': 'https://banbye.com/channel/ch_orZUyrBUJn0p',
+            'duration': 1226,
+            'timestamp': 1709566006,
+            'upload_date': '20240304',
+            'thumbnail': 'https://cdn.banbye.com/video/v_07E6K63jqwJh/96.webp',
+            'tags': ['niemcy', 'scholz', 'rosja', 'putin', 'podsłuch', 'ukraina'],
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'comment_count': int,
+        },
+    }, {
+        'url': 'https://banbye.com/watch/v_n9NLZTijHIy9',
+        'info_dict': {
+            'id': 'v_n9NLZTijHIy9',
+            'ext': 'mp4',
+            'title': 'Banderyzacja i drożyzna - PRAWDZIWA twarz UŚMIECHNIĘTEJ POLSKI! Dominik Cwikła vlog',
+            'description': 'md5:2db15f461aabf74ae7c9ad63450085a8',
+            'uploader': 'wRealu24',
+            'channel_id': 'ch_wrealu24',
+            'channel_url': 'https://banbye.com/channel/ch_wrealu24',
+            'duration': 653,
+            'timestamp': 1709578811,
+            'upload_date': '20240304',
+            'thumbnail': 'https://cdn.banbye.com/video/v_n9NLZTijHIy9/96.webp',
+            'tags': ['polska', 'banderyzacja', 'drozyzna', 'zukowska', 'ukraina', 'cwikla'],
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'comment_count': int,
+        },
     }]
 
     def _real_extract(self, url):
@@ -90,6 +174,40 @@ class BanByeIE(BanByeBaseIE):
             return self._extract_playlist(playlist_id)
 
         data = self._download_json(f'{self._API_BASE}/videos/{video_id}', video_id)
+
+        pattern_list = [
+            r'livestreamId:"(?P<id>[^"]+)"',
+            r'{video:{_id:"(?P<id>[^"]+)"',
+        ]
+        webpage_content = self._download_webpage(url, video_id)
+        for pattern in pattern_list:
+            match_obj = re.search(pattern, webpage_content)
+            if match_obj:
+                m3u8_id = match_obj.groupdict().get('id')
+                break
+
+        url_functions = [
+            lambda quality: f'{self._TC2_BASE}/live/hls/{m3u8_id}_{quality}/index.m3u8',
+            lambda quality: f'{self._TC2_BASE}/edge/video/{m3u8_id}/v/index_{quality}/index.m3u8',
+        ]
+        for function in url_functions:
+            try:
+                url = function(data['quality'][0])
+                self._download_webpage(url, video_id, note="Checking " + url)
+            except ExtractorError as err:
+                if isinstance(err.cause, HTTPError) and (err.cause.status == 404):
+                    self.to_screen('%s, switching to next format' % err.cause.reason)
+                else:
+                    raise
+            else:
+                self.to_screen("Found")
+                url_function = function
+                protocol = 'm3u8_native'
+                break
+        else:
+            url_function = lambda quality: f'{self._CDN_BASE}/video/{video_id}/{quality}.mp4'
+            protocol = 'https'
+
         thumbnails = [{
             'id': f'{quality}p',
             'url': f'{self._CDN_BASE}/video/{video_id}/{quality}.webp',
@@ -97,7 +215,9 @@ class BanByeIE(BanByeBaseIE):
         formats = [{
             'format_id': f'http-{quality}p',
             'quality': quality,
-            'url': f'{self._CDN_BASE}/video/{video_id}/{quality}.mp4',
+            'url': url_function(quality),
+            'protocol': protocol,
+            'ext': 'mp4',
         } for quality in data['quality']]
 
         return {
