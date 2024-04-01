@@ -1,5 +1,7 @@
 import math
 import re
+import json
+import hashlib
 
 from .common import InfoExtractor
 from ..compat import (
@@ -79,6 +81,26 @@ class BanByeIE(BanByeBaseIE):
             'upload_date': '20230706',
             'thumbnail': 'https://cdn.banbye.com/video/v_kb6_o1Kyq-CD/96.webp',
             'tags': ['Paryż', 'Francja', 'Polska', 'Imigranci', 'Morawiecki', 'Tusk'],
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'comment_count': int,
+        },
+    }, {
+        'url': 'https://banbye.com/watch/v_a_gPFuC9LoW5',
+        'info_dict': {
+            'id': 'v_a_gPFuC9LoW5',
+            'ext': 'mp4',
+            'title': 'Lewica od razu wali aborcją! Żywy kuc w domu "Jaszczura"! Ukraińcy wsadzili do więzienia działacza kresowego! Przegląd',
+            'description': 'md5:943ac87287ca98d28d8b8797719827c6',
+            'uploader': 'Marcin Rola - MOIM ZDANIEM!🇵🇱',
+            'channel_id': 'ch_wrealu24',
+            'channel_url': 'https://banbye.com/channel/ch_wrealu24',
+            'duration': 597,
+            'timestamp': 1688642656,
+            'upload_date': '20230706',
+            'thumbnail': 'https://cdn.banbye.com/video/v_kb6_o1Kyq-CD/96.webp',
+            'tags': ['jaszczur', 'sejm', 'lewica', 'polska', 'ukrainizacja', 'pierwszeposiedzeniesejmu'],
             'like_count': int,
             'dislike_count': int,
             'view_count': int,
@@ -186,6 +208,27 @@ class BanByeIE(BanByeBaseIE):
                 m3u8_id = match_obj.groupdict().get('id')
                 break
 
+
+# 'url': 'https://banbye.com/watch/v_a_gPFuC9LoW5',
+t.send()
+console.log("Start",e.url),
+t.readyState || t.open("GET", e.url, !0);
+t.readyState || t.open("GET", e.url, !0);console.log("Start",e.url);
+
+
+
+# Reklama
+# https://tc2l4.banbye.com/edge/video/v_Syf54_3Obi_6/v/index_144/index.m3u8
+# https://tc2l4.banbye.com/edge/video/v_Syf54_3Obi_6/v/index.m3u8
+
+
+# Wideo
+# dl9hX2dQRnVDOUxvVzU
+# https://tc2l4.banbye.com/live/hls/dl9hX2dQRnVDOUxvVzU_480/index.m3u8
+
+# https://tc2l4.banbye.com/live/hls/dl9hX2dQRnVDOUxvVzU_480/index.m3u8
+# https://tc2l4.banbye.com/live/hls/dl9hX2dQRnVDOUxvVzU_480/index.m3u8
+# https://tc2l3.banbye.com/live/hls/dl9hX2dQRnVDOUxvVzU_480/index.m3u8
         url_functions = [
             lambda quality: f'{self._TC2_BASE}/live/hls/{m3u8_id}_{quality}/index.m3u8',
             lambda quality: f'{self._TC2_BASE}/edge/video/{m3u8_id}/v/index_{quality}/index.m3u8',
@@ -219,6 +262,9 @@ class BanByeIE(BanByeBaseIE):
             'protocol': protocol,
             'ext': 'mp4',
         } for quality in data['quality']]
+
+        print(json.dumps(data, indent=4, sort_keys=True))
+        print(hashlib.md5(data.get('desc').encode('utf-8')).hexdigest())
 
         return {
             'id': video_id,
